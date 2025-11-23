@@ -58,14 +58,15 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
         
         return Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.grey.shade900,
-                Colors.black,
-              ],
-            ),
+            color: Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -97,17 +98,17 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
   Widget _buildHeader(TeleprompterProvider provider) {
     return Row(
       children: [
-        const Icon(
+        Icon(
           Icons.settings,
-          color: Colors.white,
+          color: Colors.grey.shade800,
           size: 32,
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Text(
             'Control Panel',
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.grey.shade900,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -118,7 +119,7 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
           icon: const Icon(Icons.visibility),
           label: const Text('Show Teleprompter'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue.shade700,
+            backgroundColor: Colors.blue.shade600,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -136,10 +137,10 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               'Script Text',
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.grey.shade900,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -170,23 +171,23 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade800,
+            color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Colors.grey.shade700,
+              color: Colors.grey.shade300,
               width: 1,
             ),
           ),
           child: TextField(
             controller: _textController,
             maxLines: 10,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Colors.grey.shade900,
               fontSize: 16,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Enter your script here...',
-              hintStyle: TextStyle(color: Colors.grey),
+              hintStyle: TextStyle(color: Colors.grey.shade400),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(16),
             ),
@@ -199,16 +200,21 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
   
   Widget _buildPlaybackControls(TeleprompterProvider provider) {
     return Card(
-      color: Colors.grey.shade800,
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Playback Controls',
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.grey.shade900,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -266,16 +272,21 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
   
   Widget _buildSettings(TeleprompterProvider provider, settings) {
     return Card(
-      color: Colors.grey.shade800,
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Settings',
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.grey.shade900,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -348,8 +359,8 @@ class _ControlPanelScreenState extends State<ControlPanelScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Colors.grey.shade700,
                 fontSize: 14,
               ),
             ),

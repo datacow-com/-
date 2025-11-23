@@ -30,6 +30,53 @@ class TeleprompterScreen extends StatelessWidget {
                 initialScrollPosition: provider.scrollPosition,
               ),
               
+              // Empty state hint - semi-transparent overlay
+              if (settings.text.isEmpty)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.text_fields,
+                            size: 64,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '还没有文本内容',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '按 Cmd+T 打开控制面板',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '开始添加提词器文本',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              
               // Drag handle area at the top
               // Note: When mouse pass-through is enabled (WS_EX_TRANSPARENT on Windows),
               // the window ignores all mouse events, so dragging won't work in that mode.
