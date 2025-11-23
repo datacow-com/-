@@ -29,15 +29,6 @@ class TeleprompterProvider extends ChangeNotifier {
     _settings = await _settingsService.loadSettings();
     await _windowService.initialize();
     
-    // Set window background color based on mode
-    if (_settings.isControlMode) {
-      // Control panel mode - use dark grey background for visibility
-      await _windowService.setBackgroundColor(Colors.grey.shade900);
-    } else {
-      // Teleprompter mode - use transparent background
-      await _windowService.setBackgroundColor(Colors.transparent);
-    }
-    
     // Apply window opacity based on current mode
     // Control panel mode should have visible background (opacity > 0)
     // Teleprompter mode can be transparent
@@ -140,11 +131,8 @@ class TeleprompterProvider extends ChangeNotifier {
     // Enable mouse pass-through in teleprompter mode
     await _windowService.toggleMousePassThrough(!newMode);
     
-    // Adjust window background color, opacity and size based on mode
+    // Adjust window opacity and size based on mode
     if (newMode) {
-      // Control mode - set dark grey background for visibility
-      await _windowService.setBackgroundColor(Colors.grey.shade900);
-      
       // Control mode - ensure window is visible (opacity >= 0.5)
       if (_settings.windowOpacity < 0.5) {
         _settings = _settings.copyWith(windowOpacity: 1.0);
@@ -153,9 +141,6 @@ class TeleprompterProvider extends ChangeNotifier {
       // Control mode - larger window
       await _windowService.setSize(const Size(800, 600));
     } else {
-      // Teleprompter mode - set transparent background
-      await _windowService.setBackgroundColor(Colors.transparent);
-      
       // Teleprompter mode - can be transparent
       // Keep current opacity setting
       // Keep current size
