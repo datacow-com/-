@@ -51,6 +51,13 @@ dependencies:
   
   # File operations
   file_picker: ^6.1.1
+  
+  # Speech recognition
+  speech_to_text: ^7.0.0
+  permission_handler: ^11.0.0
+  
+  # Utilities
+  uuid: ^3.0.7
 
 dev_dependencies:
   flutter_test:

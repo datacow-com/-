@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 
+enum SceneMode {
+  speech, // 演讲模式
+  video,  // 口播模式
+  live,   // 直播模式
+  custom, // 自定义模式
+}
+
 /// Settings model for the teleprompter application
 class TeleprompterSettings {
   // Text settings
@@ -17,6 +24,7 @@ class TeleprompterSettings {
   
   // Display mode
   final bool isControlMode; // true = control panel, false = teleprompter
+  final SceneMode sceneMode; // Current scene mode
   
   const TeleprompterSettings({
     this.text = '',
@@ -27,6 +35,7 @@ class TeleprompterSettings {
     this.windowOpacity = 0.5, // Default to semi-transparent
     this.textOpacity = 1.0,
     this.isControlMode = true,
+    this.sceneMode = SceneMode.speech,
   });
   
   TeleprompterSettings copyWith({
@@ -38,6 +47,7 @@ class TeleprompterSettings {
     double? windowOpacity,
     double? textOpacity,
     bool? isControlMode,
+    SceneMode? sceneMode,
   }) {
     return TeleprompterSettings(
       text: text ?? this.text,
@@ -48,6 +58,7 @@ class TeleprompterSettings {
       windowOpacity: windowOpacity ?? this.windowOpacity,
       textOpacity: textOpacity ?? this.textOpacity,
       isControlMode: isControlMode ?? this.isControlMode,
+      sceneMode: sceneMode ?? this.sceneMode,
     );
   }
   
@@ -61,6 +72,7 @@ class TeleprompterSettings {
       'windowOpacity': windowOpacity,
       'textOpacity': textOpacity,
       'isControlMode': isControlMode,
+      'sceneMode': sceneMode.index,
     };
   }
   
@@ -74,6 +86,7 @@ class TeleprompterSettings {
       windowOpacity: (json['windowOpacity'] as num?)?.toDouble() ?? 1.0,
       textOpacity: (json['textOpacity'] as num?)?.toDouble() ?? 1.0,
       isControlMode: json['isControlMode'] as bool? ?? true,
+      sceneMode: SceneMode.values[json['sceneMode'] as int? ?? 0],
     );
   }
 }

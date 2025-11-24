@@ -1,49 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'app.dart';
+import 'package:window_manager/window_manager.dart';
 import 'providers/teleprompter_provider.dart';
-import 'services/settings_service.dart';
-import 'services/window_service.dart';
-
-import 'services/debug_logger.dart';
+import 'screens/preparation_screen.dart';
+import 'utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Debug Logger
-  final logger = DebugLogger();
-  await logger.initialize();
+  // Initialize window manager
+  await windowManager.ensureInitialized();
   
-  // Catch Flutter errors
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    logger.logError(details.exception, details.stack);
-  };
-  
-  // Initialize services
-  final settingsService = SettingsService();
-  final windowService = WindowService();
-  
-  // Create provider
-  final provider = TeleprompterProvider(
-    settingsService: settingsService,
-    windowService: windowService,
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(800, 600),
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'Teleprompter Pro',
   );
   
-  // Initialize window service first - this must complete before runApp
-  await windowService.initialize();
-  
-  // Run app - this creates the Flutter view
-  runApp(
-    ChangeNotifierProvider.value(
-      value: provider,
-      child: const TeleprompterApp(),
-    ),
-  );
-  
-  // Initialize provider after runApp - this ensures Flutter view is ready
-  // Use addPostFrameCallback to ensure first frame is rendered
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await provider.initialize();
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
   });
+  
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => TeleprompterProvider(),
+      child: MaterialApp(
+        title: 'Teleprompter Pro',
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: AppTheme.background,
+          primaryColor: AppTheme.accent,
+          fontFamily: 'SF Pro',
+        ),
+        home: const PreparationScreen(),
+        debugShowCheckedModeBanner: false,
+      ),
+    );
+  }
 }

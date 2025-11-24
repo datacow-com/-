@@ -4,7 +4,9 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   hotkey_manager_windows
+  permission_handler_windows
   screen_retriever
+  speech_to_text_windows
   system_tray
   window_manager
 )
