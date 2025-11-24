@@ -131,22 +131,41 @@ class _ScrollingTextState extends State<ScrollingText> {
         padding: const EdgeInsets.all(32.0),
         child: Opacity(
           opacity: widget.textOpacity,
-          child: Text(
-            widget.text,
-            style: TextStyle(
-              fontSize: widget.fontSize,
-              color: widget.textColor,
-              fontWeight: FontWeight.w500,
-              height: 1.5,
-              shadows: [
-                Shadow(
-                  offset: const Offset(2, 2),
-                  blurRadius: 4.0,
-                  color: Colors.black.withOpacity(0.5),
+          child: Stack(
+            children: [
+              // Stroke (Outline)
+              Text(
+                widget.text,
+                style: TextStyle(
+                  fontSize: widget.fontSize,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 2.0 // Adjust stroke width based on font size if needed
+                    ..color = Colors.black.withOpacity(0.8),
                 ),
-              ],
-            ),
-            textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
+              ),
+              // Main Text
+              Text(
+                widget.text,
+                style: TextStyle(
+                  fontSize: widget.fontSize,
+                  color: widget.textColor,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(2, 2),
+                      blurRadius: 4.0,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),

@@ -102,10 +102,16 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 void FlutterWindow::SetMousePassThrough(bool enabled) {
   HWND hwnd = GetHandle();
   if (!hwnd) {
+    // Log error: window handle is invalid
     return;
   }
 
   LONG_PTR exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+  if (exStyle == 0 && GetLastError() != ERROR_SUCCESS) {
+    // Log error: failed to get window extended style
+    return;
+  }
+
   if (enabled) {
     // Enable mouse pass-through by adding WS_EX_TRANSPARENT
     // WS_EX_LAYERED should already be set from window creation
@@ -115,21 +121,37 @@ void FlutterWindow::SetMousePassThrough(bool enabled) {
     exStyle &= ~WS_EX_TRANSPARENT;
   }
 
-  SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
+  LONG_PTR result = SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
+  if (result == 0 && GetLastError() != ERROR_SUCCESS) {
+    // Log error: failed to set window extended style
+    return;
+  }
+
   // Force window update to apply changes
-  SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+  BOOL updateResult = SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+  if (!updateResult) {
+    // Log error: failed to update window position
+  }
 }
 
 void FlutterWindow::SetWindowOpacity(double opacity) {
   HWND hwnd = GetHandle();
   if (!hwnd) {
+    // Log error: window handle is invalid
     return;
   }
 
   // Clamp opacity to valid range [0.0, 1.0]
-  BYTE alpha = static_cast<BYTE>(255 * (opacity < 0.0 ? 0.0 : (opacity > 1.0 ? 1.0 : opacity)));
+  double clampedOpacity = (opacity < 0.0) ? 0.0 : ((opacity > 1.0) ? 1.0 : opacity);
+  BYTE alpha = static_cast<BYTE>(255 * clampedOpacity);
   
   // Set layered window attributes for transparency
-  SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+  BOOL result = SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+  if (!result) {
+    // Log error: failed to set layered window attributes
+    // This might happen if WS_EX_LAYERED is not set
+    DWORD error = GetLastError();
+    // Note: Error handling could be improved with logging
+  }
 }

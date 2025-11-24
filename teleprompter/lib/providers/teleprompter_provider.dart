@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/teleprompter_settings.dart';
 import '../services/settings_service.dart';
 import '../services/window_service.dart';
+import '../services/hotkey_service.dart';
+import '../services/tray_service.dart';
+import '../services/debug_logger.dart';
 
 /// Provider for managing teleprompter state
 class TeleprompterProvider extends ChangeNotifier {
@@ -17,6 +20,8 @@ class TeleprompterProvider extends ChangeNotifier {
     required WindowService windowService,
   })  : _settingsService = settingsService,
         _windowService = windowService;
+        
+  final _debugLogger = DebugLogger();
   
   // Getters
   TeleprompterSettings get settings => _settings;
@@ -27,22 +32,73 @@ class TeleprompterProvider extends ChangeNotifier {
   /// Initialize provider and load saved settings
   Future<void> initialize() async {
     _settings = await _settingsService.loadSettings();
-    await _windowService.initialize();
     
-    // Apply window opacity based on current mode
-    // Control panel mode should have visible background (opacity > 0)
-    // Teleprompter mode can be transparent
-    if (_settings.isControlMode && _settings.windowOpacity == 0.0) {
-      // Default to 1.0 (fully opaque) for control panel if not set
-      await _windowService.setOpacity(1.0);
-      _settings = _settings.copyWith(windowOpacity: 1.0);
-    } else {
-      await _windowService.setOpacity(_settings.windowOpacity);
-    }
+    // Always start in control mode to ensure control panel is visible
+    // Force control mode regardless of saved settings
+    _settings = _settings.copyWith(isControlMode: true);
     
-    // Set mouse pass-through based on mode
-    await _windowService.toggleMousePassThrough(!_settings.isControlMode);
+    // Wait for first frame to be rendered before showing window
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Show window after Flutter view is ready
+      await _windowService.showWindowAfterFirstFrame();
+      
+      // Control mode - ensure window is clearly visible
+      if (_settings.isControlMode) {
+        if (_settings.windowOpacity < 0.8) {
+          await _windowService.setOpacity(1.0);
+          _settings = _settings.copyWith(windowOpacity: 1.0);
+        } else {
+          await _windowService.setOpacity(_settings.windowOpacity);
+        }
+        // Window size is handled by showWindowAfterFirstFrame
+      } else {
+        await _windowService.setOpacity(_settings.windowOpacity);
+        // Ensure minimum size for teleprompter mode too
+        await _windowService.ensureMinimumSize(const Size(600, 400));
+      }
+      
+      // Set mouse pass-through based on mode
+      await _windowService.toggleMousePassThrough(!_settings.isControlMode);
+      
+      // Apply macOS-specific window settings after first frame
+      await _windowService.applyWindowSettingsAfterFirstFrame();
+      
+      // Initialize Hotkey Service
+      final hotkeyService = HotkeyService();
+      await hotkeyService.initialize();
+      await hotkeyService.registerToggleHotkey(() {
+        toggleMode();
+      });
+      
+      // Initialize System Tray
+      final trayService = TrayService();
+      await trayService.initialize(
+        onToggleVisibility: () {
+          _windowService.setAlwaysOnTop(true);
+          toggleMode();
+        },
+        onQuit: () {
+          _windowService.close();
+        },
+      );
+      
+      // Notify listeners to trigger UI update
+      notifyListeners();
+      
+      // Safety check: Force resize if window is too small after 1 second
+      // This handles cases where window_manager might have restored a small size
+      Future.delayed(const Duration(seconds: 1), () async {
+        debugPrint('[WindowDebug] Running safety check (1s delay)');
+        if (_settings.isControlMode) {
+          final size = await _windowService.getSize(); // We need to expose getSize in WindowService or use windowManager directly
+          // Since we can't easily get size from _windowService without modifying it, we'll just log and force
+          debugPrint('[WindowDebug] Forcing size in safety check');
+          await _windowService.ensureMinimumSize(const Size(1000, 700));
+        }
+      });
+    });
     
+    // Notify listeners immediately to trigger UI build
     notifyListeners();
   }
   
@@ -131,20 +187,54 @@ class TeleprompterProvider extends ChangeNotifier {
     // Enable mouse pass-through in teleprompter mode
     await _windowService.toggleMousePassThrough(!newMode);
     
-    // Adjust window opacity and size based on mode
+    // Adjust window opacity based on mode
     if (newMode) {
-      // Control mode - ensure window is visible (opacity >= 0.5)
-      if (_settings.windowOpacity < 0.5) {
+      // Control mode - ensure window is clearly visible
+      if (_settings.windowOpacity < 0.8) {
         _settings = _settings.copyWith(windowOpacity: 1.0);
         await _windowService.setOpacity(1.0);
+      } else {
+        await _windowService.setOpacity(_settings.windowOpacity);
       }
-      // Control mode - larger window
-      await _windowService.setSize(const Size(800, 600));
+      await _windowService.setAlwaysOnTop(true);
     } else {
       // Teleprompter mode - can be transparent
-      // Keep current opacity setting
-      // Keep current size
+      await _windowService.setOpacity(_settings.windowOpacity);
     }
+    
+    _saveSettings();
+    notifyListeners();
+  }
+  
+  /// Enter editor mode explicitly
+  Future<void> enterEditorMode() async {
+    if (_settings.isControlMode) return; // Already in editor mode
+    
+    _settings = _settings.copyWith(isControlMode: true);
+    
+    // Control mode - ensure window is clearly visible
+    if (_settings.windowOpacity < 0.8) {
+      _settings = _settings.copyWith(windowOpacity: 1.0);
+      await _windowService.setOpacity(1.0);
+    } else {
+      await _windowService.setOpacity(_settings.windowOpacity);
+    }
+    await _windowService.setAlwaysOnTop(true);
+    await _windowService.toggleMousePassThrough(false);
+    
+    _saveSettings();
+    notifyListeners();
+  }
+
+  /// Enter prompter mode explicitly
+  Future<void> enterPrompterMode() async {
+    if (!_settings.isControlMode) return; // Already in prompter mode
+    
+    _settings = _settings.copyWith(isControlMode: false);
+    
+    // Teleprompter mode - can be transparent
+    await _windowService.setOpacity(_settings.windowOpacity);
+    await _windowService.toggleMousePassThrough(true);
     
     _saveSettings();
     notifyListeners();
@@ -167,5 +257,18 @@ class TeleprompterProvider extends ChangeNotifier {
     _settings = _settings.copyWith(text: '');
     _saveSettings();
     notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    _logState();
+  }
+
+  void _logState() {
+    debugPrint('[DebugLogger] Logging state: isControlMode=${_settings.isControlMode}, windowOpacity=${_settings.windowOpacity}');
+    _debugLogger.logState('settings', _settings.toJson());
+    _debugLogger.logState('isScrolling', _isScrolling);
+    _debugLogger.logState('scrollPosition', _scrollPosition);
   }
 }

@@ -24,7 +24,7 @@ class TeleprompterSettings {
     this.textColor = Colors.white,
     this.scrollSpeed = 50.0,
     this.autoScroll = false,
-    this.windowOpacity = 0.0, // Default to transparent for teleprompter mode
+    this.windowOpacity = 0.5, // Default to semi-transparent
     this.textOpacity = 1.0,
     this.isControlMode = true,
   });
