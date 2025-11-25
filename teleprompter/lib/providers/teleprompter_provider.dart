@@ -122,6 +122,12 @@ class TeleprompterProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 更新场景模式
+  void updateSceneMode(SceneMode mode) {
+    _settings = _settings.copyWith(sceneMode: mode);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _speechService.stopListening();

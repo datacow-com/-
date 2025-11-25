@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/teleprompter_provider.dart';
+import '../models/teleprompter_settings.dart';
 import '../utils/app_theme.dart';
 import 'presentation_screen.dart';
 
@@ -41,34 +42,31 @@ class _PreparationScreenState extends State<PreparationScreen> {
       body: Center(
         child: Container(
           width: 800,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Logo and Title
-                _buildHeader(),
-                
-                const SizedBox(height: 24),
-                
-                // Script Input (Fixed height instead of Expanded)
-                SizedBox(
-                  height: 200,
-                  child: _buildScriptInput(),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Settings Panel
-                _buildRecentScripts(),
-                
-                const SizedBox(height: 24),
-                
-                // Start Button
-                _buildStartButton(),
-              ],
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Logo and Title
+              _buildHeader(),
+              
+              const SizedBox(height: 24),
+              
+              // Script Input - Adaptive height for full visibility
+              Expanded(
+                child: _buildScriptInput(),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Scene Selector
+              _buildRecentScripts(),
+              
+              const SizedBox(height: 24),
+              
+              // Start Button
+              _buildStartButton(),
+            ],
           ),
         ),
       ),
@@ -167,7 +165,10 @@ class _PreparationScreenState extends State<PreparationScreen> {
   Widget _buildScriptStats() {
     return Consumer<TeleprompterProvider>(
       builder: (context, provider, child) {
-        final wordCount = provider.settings.text.length;
+        // 准确统计中文字数（排除空格和标点）
+        final wordCount = provider.settings.text
+            .replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '')
+            .length;
         final estimatedMinutes = (wordCount / 140).ceil();
         
         return Row(
@@ -200,11 +201,134 @@ class _PreparationScreenState extends State<PreparationScreen> {
   Widget _buildRecentScripts() {
     return Consumer<TeleprompterProvider>(
       builder: (context, provider, child) {
-        // TODO: 实现最近脚本列表
-        // 暂时返回空容器
-        return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppTheme.panelBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: AppTheme.accent, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '选择场景模式',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textMain,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSceneModeButton(
+                      '🎤 演讲',
+                      '会议、培训、发布会',
+                      SceneMode.speech,
+                      provider,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSceneModeButton(
+                      '📹 口播',
+                      '短视频、评测、教程',
+                      SceneMode.video,
+                      provider,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSceneModeButton(
+                      '🎥 直播',
+                      '带货、互动、聊天',
+                      SceneMode.live,
+                      provider,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
       },
     );
+  }
+
+  Widget _buildSceneModeButton(
+    String title,
+    String description,
+    SceneMode mode,
+    TeleprompterProvider provider,
+  ) {
+    final isSelected = provider.settings.sceneMode == mode;
+    
+    return GestureDetector(
+      onTap: () => _selectSceneMode(mode, provider),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.accent.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppTheme.accent : AppTheme.borderColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? AppTheme.accent : AppTheme.textMain,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _selectSceneMode(SceneMode mode, TeleprompterProvider provider) {
+    // 根据场景自动调整参数
+    double speed;
+    double fontSize;
+    
+    if (mode == SceneMode.video) {
+      speed = 200.0;  // 口播快节奏
+      fontSize = 64.0;
+    } else if (mode == SceneMode.live) {
+      speed = 120.0;  // 直播慢节奏
+      fontSize = 80.0;
+    } else {
+      // SceneMode.speech or default
+      speed = 140.0;  // 演讲标准节奏
+      fontSize = 72.0;
+    }
+    
+    // 更新设置
+    provider.updateScrollSpeed(speed);
+    provider.updateFontSize(fontSize);
+    provider.updateSceneMode(mode);
   }
 
   Widget _buildStartButton() {
