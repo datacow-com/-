@@ -494,40 +494,58 @@ class _PresentationScreenState extends State<PresentationScreen>
   int _calculateScore() {
     final provider = Provider.of<TeleprompterProvider>(context, listen: false);
     
-    // 基础分：60分
-    int score = 60;
+    // 1. 基础分 (60分)：基于完成度
+    // 使用滚动位置作为完成度估算
+    final completionRate = provider.scrollPosition.clamp(0.0, 1.0);
+    int baseScore = (60 * completionRate).round();
     
-    // 完成演讲：+20分
-    score += 20;
+    // 2. 完成分 (20分)：如果滚动到底部 (>95%)
+    int completionScore = completionRate > 0.95 ? 20 : 0;
     
-    // KTV跟踪评分：最多+20分
+    // 3. KTV分 (20分)：基于跟踪准确度
+    int ktvScore = 0;
     if (provider.isTrackingEnabled) {
+      // 获取偏差绝对值
       final deviation = provider.trackingService.deviation.abs();
-      if (deviation < 0.05) {
-        score += 20; // 节奏完美
-      } else if (deviation < 0.1) {
-        score += 15; // 节奏良好
+      
+      // 偏差越小分数越高
+      if (deviation < 0.1) {
+        ktvScore = 20; // 完美 (<10% 偏差)
       } else if (deviation < 0.2) {
-        score += 10; // 节奏一般
+        ktvScore = 15; // 优秀 (<20% 偏差)
+      } else if (deviation < 0.3) {
+        ktvScore = 10; // 良好 (<30% 偏差)
+      } else if (deviation < 0.5) {
+        ktvScore = 5;  // 一般 (<50% 偏差)
       }
+      // >50% 偏差得0分
     }
     
-    return score.clamp(0, 100);
+    return (baseScore + completionScore + ktvScore).clamp(0, 100);
   }
 
+  /// 显示完成对话框
   void _showCompletionDialog() {
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    final score = _calculateScore();
+    final duration = _getPresentationDuration();
+    final wordCount = _getWordCount();
+    
+    // P1 Feature 5: Save history
+    provider.saveSpeechHistory(
+      durationSeconds: duration.inSeconds,
+      wordCount: wordCount,
+      score: score,
+    );
+    
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AchievementAnimation(
-        wordCount: _getWordCount(),
-        duration: _getPresentationDuration(),
-        score: _calculateScore(),
+        score: score,
+        duration: duration,
+        wordCount: wordCount,
         onRestart: () async {
-          final provider = Provider.of<TeleprompterProvider>(
-            context,
-            listen: false,
-          );
           Navigator.pop(context); // Close dialog
           
           // P1 Feature 2: Quick Replay System
@@ -540,7 +558,7 @@ class _PresentationScreenState extends State<PresentationScreen>
         },
         onExit: () {
           Navigator.pop(context); // Close dialog
-          Navigator.pop(context); // Return to preparation
+          Navigator.pop(context); // Exit presentation
         },
       ),
     );

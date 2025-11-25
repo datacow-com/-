@@ -23,7 +23,6 @@ class TeleprompterSettings {
   final double textOpacity; // 0.0 to 1.0
   
   // Display mode
-  final bool isControlMode; // true = control panel, false = teleprompter
   final SceneMode sceneMode; // Current scene mode
   
   const TeleprompterSettings({
@@ -34,7 +33,6 @@ class TeleprompterSettings {
     this.autoScroll = false,
     this.windowOpacity = 0.5, // Default to semi-transparent
     this.textOpacity = 1.0,
-    this.isControlMode = true,
     this.sceneMode = SceneMode.speech,
   });
   
@@ -46,7 +44,6 @@ class TeleprompterSettings {
     bool? autoScroll,
     double? windowOpacity,
     double? textOpacity,
-    bool? isControlMode,
     SceneMode? sceneMode,
   }) {
     return TeleprompterSettings(
@@ -57,7 +54,6 @@ class TeleprompterSettings {
       autoScroll: autoScroll ?? this.autoScroll,
       windowOpacity: windowOpacity ?? this.windowOpacity,
       textOpacity: textOpacity ?? this.textOpacity,
-      isControlMode: isControlMode ?? this.isControlMode,
       sceneMode: sceneMode ?? this.sceneMode,
     );
   }
@@ -71,7 +67,6 @@ class TeleprompterSettings {
       'autoScroll': autoScroll,
       'windowOpacity': windowOpacity,
       'textOpacity': textOpacity,
-      'isControlMode': isControlMode,
       'sceneMode': sceneMode.index,
     };
   }
@@ -85,7 +80,6 @@ class TeleprompterSettings {
       autoScroll: json['autoScroll'] as bool? ?? false,
       windowOpacity: (json['windowOpacity'] as num?)?.toDouble() ?? 1.0,
       textOpacity: (json['textOpacity'] as num?)?.toDouble() ?? 1.0,
-      isControlMode: json['isControlMode'] as bool? ?? true,
       sceneMode: SceneMode.values[json['sceneMode'] as int? ?? 0],
     );
   }

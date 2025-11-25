@@ -413,7 +413,7 @@ class _AchievementAnimationState extends State<AchievementAnimation>
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    return '$minutes分${seconds}秒';
+    return '$minutes分$seconds秒';
   }
 
   @override

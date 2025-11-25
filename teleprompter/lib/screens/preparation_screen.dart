@@ -5,6 +5,7 @@ import '../providers/teleprompter_provider.dart';
 import '../models/teleprompter_settings.dart';
 import '../models/script_template.dart';
 import '../utils/app_theme.dart';
+import '../widgets/history_dialog.dart';
 import 'presentation_screen.dart';
 
 /// 准备模式 - 极简单屏设计
@@ -24,7 +25,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
     super.initState();
     final provider = Provider.of<TeleprompterProvider>(context, listen: false);
     // 加载上次的脚本
-    provider.loadLastScript().then((_) {
+    provider.loadSettings().then((_) {
       if (mounted) {
         _textController.text = provider.settings.text;
         // Feature 5: Check if first time and show onboarding
@@ -78,28 +79,53 @@ class _PreparationScreenState extends State<PreparationScreen> {
   }
 
   Widget _buildHeader() {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Icon(
-          Icons.mic,
-          size: 64,
-          color: AppTheme.accent,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '准备演讲',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textMain,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '输入文稿，选择场景，开始您的精彩演讲',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          'Teleprompter Pro',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textMain,
+        // P1 Feature 5: History Button
+        TextButton.icon(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => HistoryDialog(),
+            );
+          },
+          icon: const Icon(Icons.history, color: AppTheme.accent),
+          label: const Text(
+            '历史记录',
+            style: TextStyle(
+              color: AppTheme.accent,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '您的专业演讲伙伴',
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.textSecondary,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            backgroundColor: AppTheme.accent.withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
       ],

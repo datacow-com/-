@@ -49,7 +49,7 @@ class KeyboardShortcutHandler extends StatelessWidget {
   final VoidCallback onDecreaseSpeed;
   
   const KeyboardShortcutHandler({
-    Key? key,
+    super.key,
     required this.child,
     required this.onToggleMode,
     required this.onPlayPause,
@@ -58,7 +58,7 @@ class KeyboardShortcutHandler extends StatelessWidget {
     required this.onDecreaseFontSize,
     required this.onIncreaseSpeed,
     required this.onDecreaseSpeed,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {
