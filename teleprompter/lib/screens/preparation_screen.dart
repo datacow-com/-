@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/teleprompter_provider.dart';
 import '../models/teleprompter_settings.dart';
+import '../models/script_template.dart';
 import '../utils/app_theme.dart';
 import 'presentation_screen.dart';
 
@@ -117,15 +118,29 @@ class _PreparationScreenState extends State<PreparationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.edit_note, color: AppTheme.accent, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                '输入或粘贴您的演讲稿',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textMain,
+              Row(
+                children: [
+                  const Icon(Icons.edit_note, color: AppTheme.accent, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '输入或粘贴您的演讲稿',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textMain,
+                    ),
+                  ),
+                ],
+              ),
+              // P1 Feature: Template button
+              TextButton.icon(
+                onPressed: _showTemplateDialog,
+                icon: const Icon(Icons.library_books, size: 16),
+                label: const Text('选择模板'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.accent,
                 ),
               ),
             ],
@@ -516,6 +531,183 @@ class _PreparationScreenState extends State<PreparationScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// P1 Feature: Show template selection dialog
+  void _showTemplateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.panelBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.library_books, color: AppTheme.accent, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              '选择脚本模板',
+              style: TextStyle(
+                color: AppTheme.textMain,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 600,
+          height: 500,
+          child: DefaultTabController(
+            length: 3,
+            child: Column(
+              children: [
+                TabBar(
+                  labelColor: AppTheme.accent,
+                  unselectedLabelColor: AppTheme.textSecondary,
+                  indicatorColor: AppTheme.accent,
+                  tabs: const [
+                    Tab(text: '🎤 演讲'),
+                    Tab(text: '📹 口播'),
+                    Tab(text: '🎥 直播'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildTemplateList(SceneMode.speech),
+                      _buildTemplateList(SceneMode.video),
+                      _buildTemplateList(SceneMode.live),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              '取消',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateList(SceneMode sceneMode) {
+    final templates = TemplateLibrary.presetTemplates
+        .where((t) => t.sceneMode == sceneMode)
+        .toList();
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: templates.length,
+      itemBuilder: (context, index) {
+        final template = templates[index];
+        return _buildTemplateCard(template);
+      },
+    );
+  }
+
+  Widget _buildTemplateCard(ScriptTemplate template) {
+    return Card(
+      color: AppTheme.panelBackground,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
+      child: InkWell(
+        onTap: () => _applyTemplate(template),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      template.name,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textMain,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${template.estimatedWords}字 · ${template.estimatedMinutes}分钟',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.accent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                template.description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                template.content.length > 100
+                    ? '${template.content.substring(0, 100)}...'
+                    : template.content,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _applyTemplate(ScriptTemplate template) {
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    
+    // Apply template content
+    _textController.text = template.content;
+    provider.updateText(template.content);
+    
+    // Apply template scene mode
+    _selectSceneMode(template.sceneMode, provider);
+    
+    // Close dialog
+    Navigator.pop(context);
+    
+    // Show confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已应用模板：${template.name}'),
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppTheme.accent,
+      ),
     );
   }
 }

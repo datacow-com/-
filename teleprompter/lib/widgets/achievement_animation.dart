@@ -210,6 +210,9 @@ class _AchievementAnimationState extends State<AchievementAnimation>
   }
 
   Widget _buildBadge() {
+    // P1 Feature 3: Graded achievements
+    final (medal, color1, color2) = _getMedalGrade();
+    
     return AnimatedBuilder(
       animation: _badgeController,
       builder: (context, child) {
@@ -222,23 +225,23 @@ class _AchievementAnimationState extends State<AchievementAnimation>
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                gradient: LinearGradient(
+                  colors: [color1, color2],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFD700).withOpacity(0.5),
+                    color: color1.withOpacity(0.5),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  '🏆',
-                  style: TextStyle(fontSize: 64),
+                  medal,
+                  style: const TextStyle(fontSize: 64),
                 ),
               ),
             ),
@@ -248,7 +251,24 @@ class _AchievementAnimationState extends State<AchievementAnimation>
     );
   }
 
+  /// P1 Feature 3: Get medal grade based on score
+  (String, Color, Color) _getMedalGrade() {
+    if (widget.score >= 90) {
+      return ('🥇', const Color(0xFFFFD700), const Color(0xFFFFA500)); // Gold
+    } else if (widget.score >= 80) {
+      return ('🥈', const Color(0xFFC0C0C0), const Color(0xFF808080)); // Silver
+    } else {
+      return ('🥉', const Color(0xFFCD7F32), const Color(0xFF8B4513)); // Bronze
+    }
+  }
+
   Widget _buildStats() {
+    // P1 Feature 3: Transparent scoring breakdown
+    final baseScore = 60;
+    final completionScore = 20;
+    final ktvScore = widget.score - baseScore - completionScore;
+    final suggestion = _getImprovementSuggestion();
+    
     return AnimatedBuilder(
       animation: _statsOpacityAnimation,
       builder: (context, child) {
@@ -260,12 +280,85 @@ class _AchievementAnimationState extends State<AchievementAnimation>
               const SizedBox(height: 16),
               _buildStatRow('⏱️ 时长', _formatDuration(widget.duration)),
               const SizedBox(height: 16),
-              _buildStatRow('⭐ 评分', '${widget.score} 分'),
+              _buildStatRow('⭐ 总分', '${widget.score} 分'),
+              const SizedBox(height: 8),
+              // Scoring breakdown
+              Padding(
+                padding: const EdgeInsets.only(left: 24),
+                child: Column(
+                  children: [
+                    _buildScoreDetail('基础分', baseScore),
+                    _buildScoreDetail('完成分', completionScore),
+                    _buildScoreDetail('KTV分', ktvScore),
+                  ],
+                ),
+              ),
+              if (suggestion.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('💡', style: TextStyle(fontSize: 20)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          suggestion,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFFCCCCCC),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         );
       },
     );
+  }
+
+  Widget _buildScoreDetail(String label, int score) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF888888),
+            ),
+          ),
+          Text(
+            '+$score',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF888888),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// P1 Feature 3: Get improvement suggestion based on score
+  String _getImprovementSuggestion() {
+    if (widget.score >= 90) {
+      return '完美表现！继续保持这个水平';
+    } else if (widget.score >= 80) {
+      return '表现优秀！可以尝试提升KTV跟踪准确度';
+    } else {
+      return '建议多练习几次，熟悉脚本内容';
+    }
   }
 
   Widget _buildStatRow(String label, String value) {

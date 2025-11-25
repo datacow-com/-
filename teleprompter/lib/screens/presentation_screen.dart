@@ -4,10 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import '../providers/teleprompter_provider.dart';
-import '../utils/app_theme.dart';
-import '../widgets/progress_comparison.dart';
 import '../widgets/spotlight_effect.dart';
+import '../widgets/progress_comparison.dart';
 import '../widgets/achievement_animation.dart';
+import '../widgets/keyboard_help_panel.dart';
+import '../utils/app_theme.dart';
 
 /// 演讲模式 - 全屏极简设计
 /// 目标：100% 专注于文字，零干扰
@@ -28,6 +29,7 @@ class _PresentationScreenState extends State<PresentationScreen>
   bool _showControls = false;
   bool _enableSpotlight = true; // 聚光灯效果开关
   Timer? _hideControlsTimer; // 自动隐藏控制栏的定时器
+  bool _showKeyboardHelp = false; // P1 Feature 4: 快捷键帮助面板
 
   @override
   void initState() {
@@ -125,10 +127,10 @@ class _PresentationScreenState extends State<PresentationScreen>
                       intensity: 0.6,
                     ),
 
-                  // Progress Comparison (Right bottom)
+                  // Progress Comparison (P1 Feature 4: Moved to top-right)
                   if (provider.isTrackingEnabled)
                     Positioned(
-                      bottom: 100,
+                      top: 16,
                       right: 16,
                       child: ProgressComparison(
                         expectedProgress: provider.scrollPosition,
@@ -150,6 +152,12 @@ class _PresentationScreenState extends State<PresentationScreen>
                     right: 24,
                     child: _buildFloatingMicButton(provider),
                   ),
+
+                  // P1 Feature 4: Keyboard Help Panel
+                  if (_showKeyboardHelp)
+                    Center(
+                      child: KeyboardHelpPanel(),
+                    ),
                 ],
               ),
             ),
@@ -418,10 +426,25 @@ class _PresentationScreenState extends State<PresentationScreen>
 
   void _handleKeyEvent(KeyEvent event, TeleprompterProvider provider) {
     if (event is KeyDownEvent) {
+      // P1 Feature 4: Close help panel on any key
+      if (_showKeyboardHelp) {
+        setState(() => _showKeyboardHelp = false);
+        return;
+      }
+      
       if (event.logicalKey == LogicalKeyboardKey.escape) {
         Navigator.pop(context);
       } else if (event.logicalKey == LogicalKeyboardKey.space) {
         provider.toggleAutoScroll();
+      } else if (event.logicalKey == LogicalKeyboardKey.keyL) {
+        // P1 Feature 4: Toggle spotlight
+        setState(() => _enableSpotlight = !_enableSpotlight);
+      } else if (event.logicalKey == LogicalKeyboardKey.slash && event.character == '?') {
+        // P1 Feature 4: Show help panel (?)
+        setState(() => _showKeyboardHelp = true);
+      } else if (event.logicalKey == LogicalKeyboardKey.keyH) {
+        // P1 Feature 4: Show help panel (H)
+        setState(() => _showKeyboardHelp = true);
       }
     }
   }
@@ -500,15 +523,20 @@ class _PresentationScreenState extends State<PresentationScreen>
         wordCount: _getWordCount(),
         duration: _getPresentationDuration(),
         score: _calculateScore(),
-        onRestart: () {
-          Navigator.pop(context); // Close dialog
+        onRestart: () async {
           final provider = Provider.of<TeleprompterProvider>(
             context,
             listen: false,
           );
           Navigator.pop(context); // Close dialog
+          
+          // P1 Feature 2: Quick Replay System
+          // Reset state but keep all settings
           provider.resetScroll();
           _presentationStartTime = Duration.zero;
+          
+          // Show countdown and auto-start
+          await _showCountdownAndStart(provider);
         },
         onExit: () {
           Navigator.pop(context); // Close dialog
@@ -517,4 +545,77 @@ class _PresentationScreenState extends State<PresentationScreen>
       ),
     );
   }
+
+  /// P1 Feature 2: Show countdown and auto-start
+  Future<void> _showCountdownAndStart(TeleprompterProvider provider) async {
+    // Show countdown overlay
+    for (int i = 3; i > 0; i--) {
+      if (!mounted) return;
+      
+      // Show countdown number
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black54,
+        builder: (context) => Center(
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppTheme.accent,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '$i',
+                style: const TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) Navigator.pop(context);
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+    
+    // Show "GO!"
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+          decoration: BoxDecoration(
+            color: AppTheme.accent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Text(
+            'GO!',
+            style: TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) Navigator.pop(context);
+    
+    // Auto-start scrolling
+    if (mounted && !provider.isScrolling) {
+      provider.toggleAutoScroll();
+    }
+  }
 }
+
