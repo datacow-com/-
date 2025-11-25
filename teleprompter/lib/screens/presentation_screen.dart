@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
@@ -26,6 +27,7 @@ class _PresentationScreenState extends State<PresentationScreen>
   int _currentLineIndex = 0;
   bool _showControls = false;
   bool _enableSpotlight = true; // 聚光灯效果开关
+  Timer? _hideControlsTimer; // 自动隐藏控制栏的定时器
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _PresentationScreenState extends State<PresentationScreen>
   void dispose() {
     _ticker.dispose();
     _scrollController.dispose();
+    _hideControlsTimer?.cancel(); // 取消定时器
     
     // 恢复系统UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -140,11 +143,42 @@ class _PresentationScreenState extends State<PresentationScreen>
 
                   // Bottom Control Bar (Show on hover)
                   if (_showControls) _buildBottomControlBar(provider),
+
+                  // Fixed Floating Mic Button (Feature 4: Progressive KTV Disclosure)
+                  Positioned(
+                    bottom: 24,
+                    right: 24,
+                    child: _buildFloatingMicButton(provider),
+                  ),
                 ],
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Feature 4: Fixed floating mic button for KTV tracking
+  Widget _buildFloatingMicButton(TeleprompterProvider provider) {
+    return Tooltip(
+      message: provider.isTrackingEnabled ? '停止KTV跟踪' : '开启KTV跟踪',
+      child: FloatingActionButton(
+        onPressed: () async {
+          if (provider.isTrackingEnabled) {
+            await provider.stopTracking();
+          } else {
+            await provider.startTracking();
+          }
+        },
+        backgroundColor: provider.isTrackingEnabled 
+            ? AppTheme.accent 
+            : Colors.grey.withOpacity(0.7),
+        child: Icon(
+          Icons.mic,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }
@@ -472,10 +506,9 @@ class _PresentationScreenState extends State<PresentationScreen>
             context,
             listen: false,
           );
+          Navigator.pop(context); // Close dialog
           provider.resetScroll();
-          setState(() {
-            _presentationStartTime = Duration.zero;
-          });
+          _presentationStartTime = Duration.zero;
         },
         onExit: () {
           Navigator.pop(context); // Close dialog

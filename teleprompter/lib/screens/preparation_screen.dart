@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/teleprompter_provider.dart';
 import '../models/teleprompter_settings.dart';
 import '../utils/app_theme.dart';
@@ -25,6 +26,8 @@ class _PreparationScreenState extends State<PreparationScreen> {
     provider.loadLastScript().then((_) {
       if (mounted) {
         _textController.text = provider.settings.text;
+        // Feature 5: Check if first time and show onboarding
+        _checkFirstTimeAndShowOnboarding();
       }
     });
   }
@@ -380,6 +383,139 @@ class _PreparationScreenState extends State<PreparationScreen> {
         builder: (_) => const PresentationScreen(),
         fullscreenDialog: true,
       ),
+    );
+  }
+
+  /// Feature 5: Check if first time and show onboarding
+  Future<void> _checkFirstTimeAndShowOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstTime = prefs.getBool('is_first_time') ?? true;
+    
+    if (isFirstTime && mounted) {
+      await prefs.setBool('is_first_time', false);
+      _showOnboardingDialog();
+    }
+  }
+
+  /// Feature 5: Show onboarding dialog
+  void _showOnboardingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.panelBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.waving_hand, color: AppTheme.accent, size: 32),
+            const SizedBox(width: 12),
+            Text(
+              '欢迎使用 Teleprompter Pro',
+              style: TextStyle(
+                color: AppTheme.textMain,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '让每次演讲都充满信心',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildOnboardingStep(
+                '1️⃣ 输入演讲稿',
+                '在上方输入框粘贴或输入您的演讲内容',
+              ),
+              const SizedBox(height: 16),
+              _buildOnboardingStep(
+                '2️⃣ 选择场景',
+                '根据您的使用场景（演讲/口播/直播）选择模式',
+              ),
+              const SizedBox(height: 16),
+              _buildOnboardingStep(
+                '3️⃣ 开始演讲',
+                '点击"开始演讲"按钮，按空格键暂停/继续',
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.accent.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.mic, color: AppTheme.accent, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '💡 提示：演讲时点击右下角麦克风开启KTV实时跟踪',
+                        style: TextStyle(
+                          color: AppTheme.textMain,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              '开始体验',
+              style: TextStyle(
+                color: AppTheme.accent,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnboardingStep(String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: AppTheme.textMain,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            description,
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
