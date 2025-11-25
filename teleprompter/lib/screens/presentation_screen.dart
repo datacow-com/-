@@ -39,10 +39,17 @@ class _PresentationScreenState extends State<PresentationScreen>
     
     // 进入全屏
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+
+    // Listen for errors
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    provider.addListener(_onError);
   }
 
   @override
   void dispose() {
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    provider.removeListener(_onError);
+    
     _ticker.dispose();
     _scrollController.dispose();
     _hideControlsTimer?.cancel(); // 取消定时器
@@ -50,6 +57,20 @@ class _PresentationScreenState extends State<PresentationScreen>
     // 恢复系统UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  void _onError() {
+    if (!mounted) return;
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    if (provider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage!),
+          backgroundColor: AppTheme.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _onTick(Duration elapsed) {

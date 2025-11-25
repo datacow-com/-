@@ -24,6 +24,10 @@ class _PreparationScreenState extends State<PreparationScreen> {
   void initState() {
     super.initState();
     final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    
+    // Listen for errors
+    provider.addListener(_onError);
+    
     // 加载上次的脚本
     provider.loadSettings().then((_) {
       if (mounted) {
@@ -36,8 +40,24 @@ class _PreparationScreenState extends State<PreparationScreen> {
   
   @override
   void dispose() {
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    provider.removeListener(_onError);
     _textController.dispose();
     super.dispose();
+  }
+
+  void _onError() {
+    if (!mounted) return;
+    final provider = Provider.of<TeleprompterProvider>(context, listen: false);
+    if (provider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage!),
+          backgroundColor: AppTheme.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
